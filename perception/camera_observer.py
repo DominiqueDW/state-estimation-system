@@ -1,7 +1,7 @@
 import cv2
 from ultralytics import YOLO
 import supervision as sv
-
+import numpy as np
 
 class CameraObserver:
 
@@ -17,6 +17,25 @@ class CameraObserver:
 
         self.model = YOLO("yolov8n.pt")  # lightweight model
         self.tracker = sv.ByteTrack()
+
+        import numpy as np
+
+        self.image_points = np.array([
+            [ 569,  692], # bottom-left
+            [1307,  603], # bottom-right
+            [ 693,  286], # top-right
+            [ 308,  301]  # top-left
+        ], dtype=np.float32)
+
+        self.world_points = np.array([
+            [0, 0],
+            [10, 0],
+            [10, 20],
+            [0, 20]
+        ], dtype=np.float32)
+
+        self.H, _ = cv2.findHomography(self.image_points, self.world_points)
+        self.H_inv = np.linalg.inv(self.H)
 
     def get_observations(self):
 
@@ -45,13 +64,23 @@ class CameraObserver:
 
             if track_id is None:
                 continue
+            
+            # approximation of where the car touches the road
+            cx = float((x1 + x2) / 2)
+            cy = float(y2)  # bottom of bounding box
 
-            cx = (x1 + x2) / 2
-            cy = (y1 + y2) / 2
+            # convert real coordinate to world coordinates
+            point = np.array([[[cx, cy]]], dtype=np.float32)
+
+            world_point = cv2.perspectiveTransform(point, self.H)
+
+            wx = float(world_point[0][0][0])
+            wy = float(world_point[0][0][1])
 
             observations.append({
                 "track_id": int(track_id),
-                "position": [cx / 100, cy / 100],
+                "position": [wx, wy],
+                "pixel": [cx, cy],
                 "confidence": float(detections.confidence[i])
             })
 

@@ -1,5 +1,5 @@
 from state.world_model import WorldModel
-from perception.mock_observer import MockObserver
+# from perception.mock_observer import MockObserver
 from geometry.zones import PARKING_ZONES
 from logic.occupancy_engine import OccupancyEngine
 from debug.topdown_view import TopDownView
@@ -49,7 +49,7 @@ def main():
             world.tick(dt, observations)
 
             # viewer.render(world, PARKING_ZONES, observations)
-            camera_view.render(frame, observations, world)
+            camera_view.render(frame, observations, world, observer.image_points, observer.H_inv)
 
             time.sleep(dt) # Run updates at 30 FPS
     except KeyboardInterrupt:
