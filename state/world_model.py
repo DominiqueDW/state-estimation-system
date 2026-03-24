@@ -1,10 +1,9 @@
 from state.entity import EntityState
-from scipy.optimize import linear_sum_assignment
 import numpy as np
 import math
 
-ASSOCIATION_GATE = 9.0
-MAX_UNSEEN_TIME = 3.0
+ASSOCIATION_GATE = 2.0
+MAX_UNSEEN_TIME = 1.5
 
 def distance(p1, p2):
     return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
@@ -41,8 +40,24 @@ class WorldModel:
                 seen_ids.add(track_id)
 
             else:
-                # new track = new entity
-                self.add_entity(track_id, obs["position"])
+                # Lightweight ID stabilisation
+                # try to match to existing entity before creating a new one
+                matched_entity = None
+                min_dist = float("inf")
+
+                for entity in self.entities.values():
+                    d = np.linalg.norm(np.array(entity.position) - np.array(obs["position"]))
+
+                    if d < min_dist:
+                        min_dist = d
+                        matched_entity = entity
+
+                if matched_entity is not None and min_dist < ASSOCIATION_GATE:
+                    # reuse existing entity
+                    matched_entity.update_from_observation(obs["position"])
+                else:
+                    # truly new object
+                    self.add_entity(track_id, obs["position"])
 
         # remove stale entities
         to_remove = []
