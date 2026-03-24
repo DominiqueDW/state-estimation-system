@@ -12,75 +12,49 @@ def distance(p1, p2):
 class WorldModel:
     def __init__(self):
         self.entities = {}
-        self.next_id = 0
 
-    def add_entity(self, position, velocity):
-        entity = EntityState(self.next_id)
+    def add_entity(self, entity_id, position, velocity=[0, 0]):
+        entity = EntityState(entity_id)
         entity.initialize_state(position, velocity)
-        self.entities[self.next_id] = entity
-        self.next_id += 1
+        self.entities[entity_id] = entity
 
     def tick(self, dt, observations=None):
+
         if observations is None:
             observations = []
 
-        # update world every cycle
+        # predict all entities
         for entity in self.entities.values():
             entity.predict(dt)
 
-        entities = list(self.entities.values())
+        # track which entities were seen
+        seen_ids = set()
 
-        # if no entities exist, add all observations as new entities
-        if len(entities) == 0:
-            for obs in observations:
-                self.add_entity(obs["position"], [0, 0])
-            return
+        # process observations
+        for obs in observations:
 
-        # Hungarian algorithm to associate entities with observations based on distance
-        cost_matrix = []
+            track_id = obs["track_id"]
 
-        for entity in entities:
-            row = []
-
-            for obs in observations:
-                row.append(entity.mahalanobis_distance(obs["position"]))
-            cost_matrix.append(row)
-        
-        # row = entity, col = observation, value = distance between entity and observation
-        cost_matrix = np.array(cost_matrix)
-
-        # assign each entity to closest observation
-        row_idx, col_idx = linear_sum_assignment(cost_matrix)
-
-        # Track matched entities to avoid updating them multiple times
-        matched_entities = set()
-        matched_observations = set()
-        
-        # check association gate for each matched pair
-        for r, c in zip(row_idx, col_idx):
-            entity = entities[r]
-            obs = observations[c]
-            d = cost_matrix[r][c]
-
-            if d <= ASSOCIATION_GATE:
+            if track_id in self.entities:
+                entity = self.entities[track_id]
                 entity.update_from_observation(obs["position"])
-                matched_entities.add(entity.entity_id) # for debugging purposes only
-                matched_observations.add(c)
-        
-        # spawn new entities for unmatched observations
-        for i, obs in enumerate(observations):
+                seen_ids.add(track_id)
 
-            if i not in matched_observations:
-                self.add_entity(obs["position"], [0, 0])
-        
+            else:
+                # new track = new entity
+                self.add_entity(track_id, obs["position"])
+
+        # remove stale entities
         to_remove = []
 
         for entity_id, entity in self.entities.items():
             if entity.time_since_seen > MAX_UNSEEN_TIME:
                 to_remove.append(entity_id)
-        
+
         for entity_id in to_remove:
             del self.entities[entity_id]
+
+    
 
 
     
