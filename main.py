@@ -1,5 +1,4 @@
 from state.world_model import WorldModel
-# from perception.mock_observer import MockObserver
 from geometry.zones import PARKING_ZONES
 from logic.occupancy_engine import OccupancyEngine
 from debug.topdown_view import TopDownView
@@ -20,7 +19,6 @@ MODE = "record"
 # MODE = "replay"
 
 if MODE == "record":
-    # observer = MockObserver()
     observer = CameraObserver()
     recorder = ObservationRecorder("observations.json")
 
@@ -29,7 +27,7 @@ elif MODE == "replay":
     recorder = None
 
 def main():
-    world = WorldModel() # current belief of reality
+    world = WorldModel()
 
     try:
         while True:
@@ -39,19 +37,22 @@ def main():
             if frame is None:
                 break
 
-            # check if entity is inside any parking zone
-            occupancy = occupancy_engine.compute(world, PARKING_ZONES)
+            # update world
+            world.tick(dt, observations)
+
+            # compute occupancy
+            occupancy = occupancy_engine.update(world, PARKING_ZONES, dt)
+            print("Occupancy:", occupancy)
 
             if recorder is not None:
                 recorder.record(observations)
                 timeline.record(world, occupancy)
 
-            world.tick(dt, observations)
-
-            # viewer.render(world, PARKING_ZONES, observations)
+            # render
+            viewer.render(frame, observations, world, PARKING_ZONES, occupancy)
             camera_view.render(frame, observations, world, observer.image_points, observer.H_inv)
 
-            time.sleep(dt) # Run updates at 30 FPS
+            time.sleep(dt)
     except KeyboardInterrupt:
         print("Stopping system...")
     

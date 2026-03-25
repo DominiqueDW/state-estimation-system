@@ -4,9 +4,8 @@ import numpy as np
 
 class TopDownView:
     def __init__(self):
-
-        self.width = 800
-        self.height = 600
+        self.width = 750
+        self.height = 800
 
         self.scale = 80  # pixels per world unit
     
@@ -19,33 +18,35 @@ class TopDownView:
 
         return (x, y)
 
-    def draw_zones(self, frame, zones):
+    def draw_zones(self, frame, zones, occupancy=None):
+        occ_map = {}
+        if occupancy is not None:
+            occ_map = {z["zone_id"]: z for z in occupancy}
+
         for zone in zones:
+            state = occ_map.get(zone.zone_id, {})
+            occupied = state.get("occupied", False)
 
-            pts = []
+            color = (0, 0, 255) if occupied else (0, 255, 0)
 
-            for p in zone.polygon:
-                pts.append(self.world_to_screen(p))
-
+            pts = [self.world_to_screen(p) for p in zone.polygon]
             pts = np.array(pts, np.int32)
 
-            cv2.polylines(
-                frame,
-                [pts],
-                isClosed=True,
-                color=(255, 255, 255),
-                thickness=2
-            )
+            cv2.polylines(frame, [pts], True, color, 2)
 
             label_pos = self.world_to_screen(zone.polygon[0])
 
+            label = zone.zone_id
+            if occupied:
+                label += " (X)"
+
             cv2.putText(
                 frame,
-                zone.zone_id,
+                label,
                 label_pos,
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
-                (255,255,255),
+                color,
                 1
             )
 
@@ -81,7 +82,7 @@ class TopDownView:
                 frame,
                 pos,
                 5,
-                (0,0,255),   # RED
+                (0,0,255),
                 -1
             )
 
@@ -95,15 +96,12 @@ class TopDownView:
                 1
             )
     
-    def render(self, world, zones, observations):
+    def render(self, frame, observations, world, zones, occupancy=None):
         frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
 
-        self.draw_zones(frame, zones)
-
+        self.draw_zones(frame, zones, occupancy)
         self.draw_observations(frame, observations)
-
         self.draw_entities(frame, world)
 
         cv2.imshow("World View", frame)
-
         cv2.waitKey(1)

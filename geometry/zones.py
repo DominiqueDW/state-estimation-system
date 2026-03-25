@@ -1,8 +1,5 @@
-# Geometry should never depend on AI, it should only depend on math, coordinates, and tranformations
-
 class Zone:
     def __init__(self, zone_id, polygon):
-
         self.zone_id = zone_id
         self.polygon = polygon
 

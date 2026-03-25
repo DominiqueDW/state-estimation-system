@@ -3,9 +3,13 @@ from ultralytics import YOLO
 import supervision as sv
 import numpy as np
 
+def point_in_image_polygon(point, polygon):
+    polygon_np = np.array(polygon, dtype=np.int32)
+    return cv2.pointPolygonTest(polygon_np, tuple(point), False) >= 0
+
 class CameraObserver:
 
-    def __init__(self, camera_index=0):
+    def __init__(self):
 
         self.cap = cv2.VideoCapture("data/Intersection.mp4")
 
@@ -17,8 +21,6 @@ class CameraObserver:
 
         self.model = YOLO("yolov8n.pt")  # lightweight model
         self.tracker = sv.ByteTrack()
-
-        import numpy as np
 
         self.image_points = np.array([
             [ 569,  692], # bottom-left
@@ -34,6 +36,7 @@ class CameraObserver:
             [0, 20]
         ], dtype=np.float32)
 
+        # transformation map
         self.H, _ = cv2.findHomography(self.image_points, self.world_points)
         self.H_inv = np.linalg.inv(self.H)
 
@@ -41,10 +44,11 @@ class CameraObserver:
 
         ret, frame = self.cap.read()
 
+        # ret = true if frame is read correctly
         if not ret:
             return [], None
 
-        results = self.model(frame, task="detect")[0]
+        results = self.model(frame, task="detect", verbose=False)[0]
 
         detections = sv.Detections.from_ultralytics(results)
 
@@ -67,7 +71,11 @@ class CameraObserver:
             
             # approximation of where the car touches the road
             cx = float((x1 + x2) / 2)
-            cy = float(y2)  # bottom of bounding box
+            cy = float(y2)
+
+            # only note observations within predefined area
+            if not point_in_image_polygon((cx, cy), self.image_points):
+                continue
 
             # convert real coordinate to world coordinates
             point = np.array([[[cx, cy]]], dtype=np.float32)
