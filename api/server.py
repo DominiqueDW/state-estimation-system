@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from api.state_store import state_store
 
 import threading
-from main import main  # import your main loop
+from main import main
 
 app = FastAPI()
 
