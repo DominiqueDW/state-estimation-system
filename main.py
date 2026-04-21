@@ -15,6 +15,7 @@ viewer = TopDownView()
 occupancy_engine = OccupancyEngine()
 timeline = TimelineRecorder()
 
+SAVE = False
 MODE = "record"
 # MODE = "replay"
 
@@ -71,7 +72,7 @@ def main():
         print("Stopping system...")
     
     finally:
-        if recorder is not None:
+        if recorder is not None and SAVE:
             recorder.save()
             timeline.save()
             print("Observations saved")
