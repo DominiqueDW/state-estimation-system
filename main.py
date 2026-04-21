@@ -9,7 +9,6 @@ from perception.camera_observer import CameraObserver
 from api.state_store import state_store
 from debug.camera_view import CameraView
 import cv2
-import time
 
 camera_view = CameraView()
 viewer = TopDownView()
@@ -43,7 +42,6 @@ def main():
 
             # compute occupancy
             occupancy = occupancy_engine.update(world, PARKING_ZONES, dt)
-            # print("Occupancy:", occupancy)
 
             state_store.occupancy = occupancy
             state_store.entities = [
@@ -83,6 +81,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-# main should not contain domain logic, just call functions from other modules. The main loop should be as clean as possible, just calling functions and printing results.
 # call perception to get observations, call world model to update belief, call logic to compute occupancy, print results.
 # main = system pipeline controller.
