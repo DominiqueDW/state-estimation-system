@@ -104,4 +104,3 @@ class TopDownView:
         self.draw_entities(frame, world)
 
         cv2.imshow("World View", frame)
-        cv2.waitKey(1)

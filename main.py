@@ -6,6 +6,7 @@ from replay.recorder import ObservationRecorder
 from replay.player import ObservationPlayer
 from debug.timeline import TimelineRecorder
 from perception.camera_observer import CameraObserver
+from api.state_store import state_store
 from debug.camera_view import CameraView
 import cv2
 import time
@@ -42,7 +43,17 @@ def main():
 
             # compute occupancy
             occupancy = occupancy_engine.update(world, PARKING_ZONES, dt)
-            print("Occupancy:", occupancy)
+            # print("Occupancy:", occupancy)
+
+            state_store.occupancy = occupancy
+            state_store.entities = [
+                {
+                    "entity_id": e.entity_id,
+                    "position": e.position,
+                    "velocity": e.velocity
+                }
+                for e in world.entities.values()
+            ]
 
             if recorder is not None:
                 recorder.record(observations)
@@ -52,7 +63,12 @@ def main():
             viewer.render(frame, observations, world, PARKING_ZONES, occupancy)
             camera_view.render(frame, observations, world, observer.image_points, observer.H_inv)
 
-            time.sleep(dt)
+            key = cv2.waitKey(1) & 0xFF
+
+            if key == 27:  # ESC key
+                print("ESC pressed. Stopping system...")
+                break
+
     except KeyboardInterrupt:
         print("Stopping system...")
     

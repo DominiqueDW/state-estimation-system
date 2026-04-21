@@ -45,4 +45,3 @@ class CameraView:
                 )
         
         cv2.imshow("Camera View", display)
-        cv2.waitKey(1)
